@@ -1,0 +1,19 @@
+﻿<Page
+    x:Class="capture.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:capture"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid>
+        <StackPanel HorizontalAlignment="Center">
+            <Button Click="Button_ClickAsync">Button_ClickAsync</Button>
+            <Button Click="ScreenshotButton_ClickAsync">ScreenshotButton_ClickAsync</Button>
+            <Button Click="RecordButton_Click">start record</Button>
+            <Button Click="OpenSecondWindowAsync">opwn window</Button>
+        </StackPanel>
+    </Grid>
+</Page>
