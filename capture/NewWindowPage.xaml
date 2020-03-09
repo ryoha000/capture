@@ -9,10 +9,27 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Grid>
-        <StackPanel HorizontalAlignment="Center">
-            <Button Click="Button_ClickAsync">Button_ClickAsync</Button>
-            <Button Click="ScreenshotButton_ClickAsync">ScreenshotButton_ClickAsync</Button>
-            <Button Click="RecordButton_Click">start record</Button>
+        <StackPanel Orientation="Horizontal">
+            <Button Click="Button_ClickAsync" Background="White" Padding="5">
+                <StackPanel Orientation="Horizontal">
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE840;"/>
+                </StackPanel>
+            </Button>
+            <Button Click="ScreenshotButton_ClickAsync" Background="White" Padding="5">
+                <StackPanel Orientation="Horizontal">
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE722;"/>
+                </StackPanel>
+            </Button>
+            <Button Click="RecordButton_Click" Background="White" Padding="5">
+                <StackPanel Orientation="Horizontal">
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE714;"/>
+                </StackPanel>
+            </Button>
+            <Button Background="White" Padding="5">
+                <StackPanel Orientation="Horizontal">
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xF83B;"/>
+                </StackPanel>
+            </Button>
         </StackPanel>
     </Grid>
 </Page>

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.UI.Composition;
+using Microsoft.Toolkit.Uwp.Helpers;
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Windows.Foundation;
 using Windows.Graphics;
 using Windows.Graphics.Capture;
 using Windows.Graphics.DirectX;
+using Windows.Graphics.Display;
 using Windows.Storage;
 using Windows.UI;
 using Windows.UI.Composition;
@@ -46,6 +48,26 @@ namespace capture
 
         private void Setup()
         {
+            //----< Transparent Title >----
+
+            //using Windows.UI.ViewManagement;
+
+            //window as default-size
+
+            Windows.UI.ViewManagement.ApplicationViewTitleBar uwpTitleBar = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TitleBar;
+
+            uwpTitleBar.ButtonBackgroundColor = Windows.UI.Colors.Transparent;
+
+            uwpTitleBar.BackgroundColor = Windows.UI.Colors.Transparent;
+
+
+            //using Windows.ApplicationModel.Core
+
+            Windows.ApplicationModel.Core.CoreApplicationViewTitleBar coreTitleBar = Windows.ApplicationModel.Core.CoreApplication.GetCurrentView().TitleBar;
+
+            coreTitleBar.ExtendViewIntoTitleBar = true;
+
+            //----</ Transparent Title >----
             _canvasDevice = new CanvasDevice();
 
             _compositionGraphicsDevice = CanvasComposition.CreateCompositionGraphicsDevice(
@@ -68,6 +90,7 @@ namespace capture
             brush.Stretch = CompositionStretch.Uniform;
             visual.Brush = brush;
             ElementCompositionPreview.SetElementChildVisual(this, visual);
+            StartCaptureInternal(MainPage.targetcap);
         }
 
         public async Task StartCaptureAsync()
@@ -85,7 +108,7 @@ namespace capture
             }
         }
 
-        private void StartCaptureInternal(GraphicsCaptureItem item)
+        private async void StartCaptureInternal(GraphicsCaptureItem item)
         {
             // Stop the previous capture if we had one.
             StopCapture();
@@ -122,6 +145,7 @@ namespace capture
 
             _session = _framePool.CreateCaptureSession(_item);
             _session.StartCapture();
+            await SaveRecordingAsync("a.mp4", 5000);
         }
 
         public void StopCapture()
@@ -142,12 +166,19 @@ namespace capture
             // isn’t vulnerable to device-lost.
             bool needsReset = false;
             bool recreateDevice = false;
+            var scale = DisplayInformation.GetForCurrentView().RawPixelsPerViewPixel;
 
             if ((frame.ContentSize.Width != _lastSize.Width) ||
                 (frame.ContentSize.Height != _lastSize.Height))
             {
                 needsReset = true;
                 _lastSize = frame.ContentSize;
+                System.Diagnostics.Debug.WriteLine(CoreApplication.GetCurrentView().TitleBar.Height);
+                bool result = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryResizeView(new Size { Width = frame.ContentSize.Width / scale, Height = (frame.ContentSize.Height - 10) / scale });
+                if (!result)
+                {
+                    bool result_full = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryEnterFullScreenMode();
+                }
             }
 
             try

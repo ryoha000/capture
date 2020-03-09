@@ -38,6 +38,7 @@ namespace capture
         private CompositionDrawingSurface _surface;
         private CanvasBitmap _currentFrame;
         private string _screenshotFilename = "test.png";
+        public static GraphicsCaptureItem targetcap;
 
         public MainPage()
         {
@@ -77,12 +78,14 @@ namespace capture
             // file pickers do.
             var picker = new GraphicsCapturePicker();
             GraphicsCaptureItem item = await picker.PickSingleItemAsync();
+            targetcap = item;
 
             // The item may be null if the user dismissed the
             // control without making a selection or hit Cancel.
             if (item != null)
             {
-                StartCaptureInternal(item);
+                //StartCaptureInternal(item);
+                OpenWindowAsync();
             }
         }
 
@@ -248,7 +251,7 @@ namespace capture
 
         private async void RecordButton_Click(object sender, RoutedEventArgs e)
         {
-            await SaveRecordingAsync("a.mp4", 5000);
+            await SaveRecordingAsyncM("a.mp4", 5000);
         }
 
         private async Task SaveImageAsync(string filename, CanvasBitmap frame)
@@ -264,7 +267,7 @@ namespace capture
             }
         }
 
-        private async Task SaveRecordingAsync(string filename, int span)
+        private async Task SaveRecordingAsyncM(string filename, int span)
         {
             Windows.Media.AppRecording.AppRecordingManager am = Windows.Media.AppRecording.AppRecordingManager.GetDefault();
             if (am.GetStatus().CanRecord)
@@ -280,6 +283,22 @@ namespace capture
         }
 
         private async void OpenSecondWindowAsync(object sender, RoutedEventArgs e)
+        {
+            var currentViewId = ApplicationView.GetForCurrentView().Id;
+            await CoreApplication.CreateNewView().Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
+            {
+                Window.Current.Content = new Frame();
+                ((Frame)Window.Current.Content).Navigate(typeof(NewWindowPage));
+                Window.Current.Activate();
+                await ApplicationViewSwitcher.TryShowAsStandaloneAsync(
+                    ApplicationView.GetApplicationViewIdForWindow(Window.Current.CoreWindow),
+                    ViewSizePreference.Default,
+                    currentViewId,
+                    ViewSizePreference.Default);
+            });
+        }
+
+        private async void OpenWindowAsync()
         {
             var currentViewId = ApplicationView.GetForCurrentView().Id;
             await CoreApplication.CreateNewView().Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
