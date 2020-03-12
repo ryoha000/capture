@@ -39,6 +39,7 @@ namespace capture
         private CanvasBitmap _currentFrame;
         private string _screenshotFilename = "test.png";
         public static GraphicsCaptureItem targetcap;
+        public static CanvasBitmap _nowFrame;
 
         public MainPage()
         {
@@ -84,8 +85,7 @@ namespace capture
             // control without making a selection or hit Cancel.
             if (item != null)
             {
-                //StartCaptureInternal(item);
-                OpenWindowAsync();
+                StartCaptureInternal(item);
             }
         }
 
@@ -182,9 +182,10 @@ namespace capture
                     frame.Surface);
 
                 _currentFrame = canvasBitmap;
+                _nowFrame = canvasBitmap;
 
                 // Helper that handles the drawing for us.
-                FillSurfaceWithBitmap(canvasBitmap);
+                //FillSurfaceWithBitmap(canvasBitmap);
             }
 
             // This is the device-lost convention for Win2D.
@@ -289,6 +290,22 @@ namespace capture
             {
                 Window.Current.Content = new Frame();
                 ((Frame)Window.Current.Content).Navigate(typeof(NewWindowPage));
+                Window.Current.Activate();
+                await ApplicationViewSwitcher.TryShowAsStandaloneAsync(
+                    ApplicationView.GetApplicationViewIdForWindow(Window.Current.CoreWindow),
+                    ViewSizePreference.Default,
+                    currentViewId,
+                    ViewSizePreference.Default);
+            });
+        }
+
+        private async void OpenNaratorWindowAsync(object sender, RoutedEventArgs e)
+        {
+            var currentViewId = ApplicationView.GetForCurrentView().Id;
+            await CoreApplication.CreateNewView().Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
+            {
+                Window.Current.Content = new Frame();
+                ((Frame)Window.Current.Content).Navigate(typeof(NaratorWindowFirst));
                 Window.Current.Activate();
                 await ApplicationViewSwitcher.TryShowAsStandaloneAsync(
                     ApplicationView.GetApplicationViewIdForWindow(Window.Current.CoreWindow),

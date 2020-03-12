@@ -25,7 +25,7 @@
                     <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE714;"/>
                 </StackPanel>
             </Button>
-            <Button Click="OpenSecondWindowAsync" Background="White" Padding="5">
+            <Button Click="OpenNaratorWindowAsync" Background="White" Padding="5">
                 <StackPanel Orientation="Horizontal">
                     <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xF83B;"/>
                 </StackPanel>

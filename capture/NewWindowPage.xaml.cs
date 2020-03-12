@@ -43,11 +43,6 @@ namespace capture
         public NewWindowPage()
         {
             this.InitializeComponent();
-            Setup();
-        }
-
-        private void Setup()
-        {
             //----< Transparent Title >----
 
             //using Windows.UI.ViewManagement;
@@ -68,6 +63,11 @@ namespace capture
             coreTitleBar.ExtendViewIntoTitleBar = true;
 
             //----</ Transparent Title >----
+            Setup();
+        }
+
+        private void Setup()
+        {
             _canvasDevice = new CanvasDevice();
 
             _compositionGraphicsDevice = CanvasComposition.CreateCompositionGraphicsDevice(
@@ -92,7 +92,6 @@ namespace capture
             ElementCompositionPreview.SetElementChildVisual(this, visual);
             StartCaptureInternal(MainPage.targetcap);
         }
-
         public async Task StartCaptureAsync()
         {
             // The GraphicsCapturePicker follows the same pattern the
@@ -112,6 +111,14 @@ namespace capture
         {
             // Stop the previous capture if we had one.
             StopCapture();
+
+            var scale = DisplayInformation.GetForCurrentView().RawPixelsPerViewPixel;
+            var height = item.Size.Height - 32;
+            bool result = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryResizeView(new Size { Width = item.Size.Width / scale, Height = height / scale });
+            if (!result)
+            {
+                bool result_full = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryEnterFullScreenMode();
+            }
 
             _item = item;
             _lastSize = _item.Size;
@@ -173,11 +180,13 @@ namespace capture
             {
                 needsReset = true;
                 _lastSize = frame.ContentSize;
-                System.Diagnostics.Debug.WriteLine(CoreApplication.GetCurrentView().TitleBar.Height);
-                bool result = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryResizeView(new Size { Width = frame.ContentSize.Width / scale, Height = (frame.ContentSize.Height - 10) / scale });
+                var _height = frame.ContentSize.Height - 32;
+                bool result = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryResizeView(new Size { Width = frame.ContentSize.Width / scale, Height = _height / scale });
+                System.Diagnostics.Debug.WriteLine(result);
                 if (!result)
                 {
-                    bool result_full = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryEnterFullScreenMode();
+                    bool _ = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryEnterFullScreenMode();
+                    System.Diagnostics.Debug.WriteLine(_);
                 }
             }
 
