@@ -42,29 +42,25 @@ namespace capture
 
         private async void setImage()
         {
-            using (var resourceCreator = CanvasDevice.GetSharedDevice())
-            using (var canvasBitmap = MainPage._nowFrame)
-            using (var canvasRenderTarget = new CanvasRenderTarget(resourceCreator, (float)MainPage._nowFrame.Size.Width, (float)MainPage._nowFrame.Size.Height, canvasBitmap.Dpi))
-            using (var drawingSession = canvasRenderTarget.CreateDrawingSession())
-            using (var scaleEffect = new ScaleEffect())
+            WriteableBitmap wb = new WriteableBitmap((int)MainPage._nowFrame.Size.Width, (int)MainPage._nowFrame.Size.Height);
+            await ByteToWriteableBitmap(wb, MainPage._nowFrame.GetPixelBytes());
+            SoftwareBitmap outputBitmap = SoftwareBitmap.CreateCopyFromBuffer(
+                wb.PixelBuffer,
+                BitmapPixelFormat.Bgra8,
+                wb.PixelWidth,
+                wb.PixelHeight
+            );
+            SoftwareBitmap displayableImage = SoftwareBitmap.Convert(outputBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+            var source = new SoftwareBitmapSource();
+            await source.SetBitmapAsync(displayableImage);
+            imageControl.Source = source;
+        }
+
+        private async Task ByteToWriteableBitmap(WriteableBitmap wb, byte[] bgra)
+        {
+            using (Stream stream = wb.PixelBuffer.AsStream())
             {
-                scaleEffect.Source = canvasBitmap;
-                scaleEffect.Scale = new System.Numerics.Vector2(1,1);
-                drawingSession.DrawImage(scaleEffect);
-                drawingSession.Flush();
-                SoftwareBitmap softwareBitmap = SoftwareBitmap.CreateCopyFromBuffer(canvasRenderTarget.GetPixelBytes().AsBuffer(), BitmapPixelFormat.Bgra8, (int)MainPage._nowFrame.Size.Width, (int)MainPage._nowFrame.Size.Height, BitmapAlphaMode.Premultiplied);
-
-                if (softwareBitmap.BitmapPixelFormat != BitmapPixelFormat.Bgra8 ||
-        softwareBitmap.BitmapAlphaMode == BitmapAlphaMode.Straight)
-                {
-                    softwareBitmap = SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
-                }
-
-                var source = new SoftwareBitmapSource();
-                await source.SetBitmapAsync(softwareBitmap);
-
-                // Set the source of the Image control
-                imageControl.Source = source;
+                await stream.WriteAsync(bgra, 0, bgra.Length);
             }
         }
     }
