@@ -10,6 +10,6 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Grid>
-        <Image x:Name="imageControl" />
+        <Image x:Name="Target" />
     </Grid>
 </Page>
