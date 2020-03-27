@@ -22,19 +22,15 @@ using Windows.UI.Xaml.Shapes;
 
 namespace capture
 {
-    /// <summary>
-    /// </summary>
-    public sealed partial class NaratorWindowFirst : Page
+    public sealed partial class NaratorWindowSecond : Page
     {
-        public static SoftwareBitmapSource _image;
-        Dictionary<uint, Windows.UI.Xaml.Input.Pointer> pointers;
 
-        public NaratorWindowFirst()
+        Dictionary<uint, Windows.UI.Xaml.Input.Pointer> pointers;
+        public NaratorWindowSecond()
         {
             this.InitializeComponent();
-            setImage();
+            image.ImageSource = NaratorWindowFirst._image;
             setSize();
-
             // Initialize the dictionary.
             pointers = new Dictionary<uint, Windows.UI.Xaml.Input.Pointer>();
 
@@ -47,29 +43,9 @@ namespace capture
                 new PointerEventHandler(canvas1_MouseUp);
         }
 
-        private async void setImage()
+        private void finish(object sender, RoutedEventArgs e)
         {
-            WriteableBitmap wb = new WriteableBitmap((int)MainPage._nowFrame.Size.Width, (int)MainPage._nowFrame.Size.Height);
-            await ByteToWriteableBitmap(wb, MainPage._nowFrame.GetPixelBytes());
-            SoftwareBitmap outputBitmap = SoftwareBitmap.CreateCopyFromBuffer(
-                wb.PixelBuffer,
-                BitmapPixelFormat.Bgra8,
-                wb.PixelWidth,
-                wb.PixelHeight
-            );
-            SoftwareBitmap displayableImage = SoftwareBitmap.Convert(outputBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
-            var source = new SoftwareBitmapSource();
-            await source.SetBitmapAsync(displayableImage);
-            _image = source;
-            image.ImageSource = source;
-        }
 
-        private async Task ByteToWriteableBitmap(WriteableBitmap wb, byte[] bgra)
-        {
-            using (Stream stream = wb.PixelBuffer.AsStream())
-            {
-                await stream.WriteAsync(bgra, 0, bgra.Length);
-            }
         }
 
         private void setSize()
@@ -180,10 +156,6 @@ namespace capture
                 isDrag = false;
                 //c.ReleaseMouseCapture();
             }
-        }
-        private void next(object sender, RoutedEventArgs e)
-        {
-            Frame.Navigate(typeof(NaratorWindowSecond), null, new EntranceNavigationTransitionInfo());
         }
     }
 }

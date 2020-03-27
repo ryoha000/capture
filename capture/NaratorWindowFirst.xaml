@@ -10,6 +10,22 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Grid>
-        <Image x:Name="Target" />
+        <RelativePanel>
+            <ScrollViewer>
+                <RelativePanel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,0,0,0" Height="30">
+                        <TextBlock FontFamily="Segoe UI Light" FontSize="24" Margin="0,0,0,0">
+                            Please select a line and a narration part.
+                        </TextBlock>
+                        <Button FontFamily="Segoe UI Light" FontSize="18" Height="30" Content="Next" Margin="50,0,0,0" Click="next"/>
+                    </StackPanel>
+                    <Canvas Name="canvas1" Margin="0,30,0,0">
+                        <Canvas.Background>
+                            <ImageBrush x:Name="image"/>
+                        </Canvas.Background>
+                    </Canvas>
+                </RelativePanel>
+            </ScrollViewer>
+        </RelativePanel>
     </Grid>
 </Page>

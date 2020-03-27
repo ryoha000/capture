@@ -96,12 +96,6 @@ namespace capture
 
             _item = item;
             _lastSize = _item.Size;
-            var scale = DisplayInformation.GetForCurrentView().RawPixelsPerViewPixel;
-            bool result = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryResizeView(new Size { Width = item.Size.Width / scale, Height = item.Size.Height / scale });
-            if (!result)
-            {
-                bool result_full = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryEnterFullScreenMode();
-            }
 
             _framePool = Direct3D11CaptureFramePool.Create(
                _canvasDevice, // D3D device
@@ -159,20 +153,10 @@ namespace capture
             {
                 needsReset = true;
                 _lastSize = frame.ContentSize;
-                bool result = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryResizeView(new Size { Width = frame.ContentSize.Width / scale, Height = frame.ContentSize.Height / scale });
-                if (!result)
-                {
-                    bool result_full = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryEnterFullScreenMode();
-                }
             }
 
             try
             {
-                bool result = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryResizeView(new Size { Width = frame.ContentSize.Width / scale, Height = frame.ContentSize.Height / scale });
-                if (!result)
-                {
-                    bool result_full = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryEnterFullScreenMode();
-                }
                 // Take the D3D11 surface and draw it into a  
                 // Composition surface.
 
