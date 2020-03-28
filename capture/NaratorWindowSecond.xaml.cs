@@ -45,7 +45,7 @@ namespace capture
 
         private void finish(object sender, RoutedEventArgs e)
         {
-
+            SendKey.sendKeyStart();
         }
 
         private void setSize()
