@@ -65,7 +65,7 @@ namespace capture
                 }
                 System.Diagnostics.Debug.WriteLine(window.ClassName);
             }
-            // return all.Where(x => x.ClassName == "Button").First().hWnd;
+            //return all.Where(x => x.ClassName == "Button").First().hWnd;
         }
 
         // 

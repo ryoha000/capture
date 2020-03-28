@@ -31,5 +31,7 @@
                 </StackPanel>
             </Button>
         </StackPanel>
+        <Image x:Name="a"/>
+        <Image x:Name="b"/>
     </Grid>
 </Page>

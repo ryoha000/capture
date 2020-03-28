@@ -26,7 +26,6 @@ namespace capture
     /// </summary>
     public sealed partial class NaratorWindowFirst : Page
     {
-        public static SoftwareBitmapSource _image;
         Dictionary<uint, Windows.UI.Xaml.Input.Pointer> pointers;
 
         public NaratorWindowFirst()
@@ -49,8 +48,8 @@ namespace capture
 
         private async void setImage()
         {
-            WriteableBitmap wb = new WriteableBitmap((int)MainPage._nowFrame.Size.Width, (int)MainPage._nowFrame.Size.Height);
-            await ByteToWriteableBitmap(wb, MainPage._nowFrame.GetPixelBytes());
+            WriteableBitmap wb = new WriteableBitmap((int)MainPage._currentFrame.Size.Width, (int)MainPage._currentFrame.Size.Height);
+            await MainPage.ByteToWriteableBitmap(wb, MainPage._currentFrame.GetPixelBytes());
             SoftwareBitmap outputBitmap = SoftwareBitmap.CreateCopyFromBuffer(
                 wb.PixelBuffer,
                 BitmapPixelFormat.Bgra8,
@@ -60,23 +59,14 @@ namespace capture
             SoftwareBitmap displayableImage = SoftwareBitmap.Convert(outputBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
             var source = new SoftwareBitmapSource();
             await source.SetBitmapAsync(displayableImage);
-            _image = source;
             image.ImageSource = source;
-        }
-
-        private async Task ByteToWriteableBitmap(WriteableBitmap wb, byte[] bgra)
-        {
-            using (Stream stream = wb.PixelBuffer.AsStream())
-            {
-                await stream.WriteAsync(bgra, 0, bgra.Length);
-            }
         }
 
         private void setSize()
         {
             var scale = DisplayInformation.GetForCurrentView().RawPixelsPerViewPixel;
-            var width = MainPage._nowFrame.Size.Width / scale;
-            var height = MainPage._nowFrame.Size.Height / scale;
+            var width = MainPage._currentFrame.Size.Width / scale;
+            var height = MainPage._currentFrame.Size.Height / scale;
             bool result = Windows.UI.ViewManagement.ApplicationView.GetForCurrentView().TryResizeView(new Size { Width = width, Height = height + 30 });
             canvas1.Width = width;
             canvas1.Height = height;
@@ -96,7 +86,6 @@ namespace capture
         /// <param name="p">マウスの現在地のポジション</param>
         private void DrawRectangle(PointerPoint p)
         {
-            System.Diagnostics.Debug.WriteLine("X:" + init.Position.X.ToString() + "-" + p.Position.X.ToString() + " Y:" + init.Position.Y.ToString() + "-" + p.Position.Y.ToString());
             var canvas = canvas1 as Canvas;
 
             //既存のパスを削除
@@ -178,6 +167,8 @@ namespace capture
             {
                 Canvas c = sender as Canvas;
                 isDrag = false;
+                var imap = e.GetCurrentPoint(canvas1);
+                MainPage.SetCoordinate(init.Position.X, imap.Position.X, init.Position.Y, imap.Position.Y,"line");
                 //c.ReleaseMouseCapture();
             }
         }

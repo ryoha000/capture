@@ -1,15 +1,22 @@
 ﻿using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.UI.Composition;
 using System;
+using System.IO;
 using System.Numerics;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
+using System.Timers;
 using Windows.ApplicationModel.Core;
 using Windows.Foundation;
 using Windows.Graphics;
 using Windows.Graphics.Capture;
 using Windows.Graphics.DirectX;
 using Windows.Graphics.Display;
+using Windows.Graphics.Imaging;
+using Windows.Media.Ocr;
 using Windows.Storage;
+using Windows.Storage.Streams;
+using Windows.System.Threading;
 using Windows.UI;
 using Windows.UI.Composition;
 using Windows.UI.Core;
@@ -17,6 +24,7 @@ using Windows.UI.ViewManagement;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Hosting;
+using Windows.UI.Xaml.Media.Imaging;
 
 namespace capture
 {
@@ -36,14 +44,28 @@ namespace capture
         private CompositionGraphicsDevice _compositionGraphicsDevice;
         private Compositor _compositor;
         private CompositionDrawingSurface _surface;
-        private CanvasBitmap _currentFrame;
+        public static CanvasBitmap _currentFrame;
         private string _screenshotFilename = "test.png";
         public static GraphicsCaptureItem targetcap;
-        public static CanvasBitmap _nowFrame;
+        private static double scale;
+
+        public static uint lineStartX;
+        public static uint lineStartY;
+        public static uint lineHeight;
+        public static uint lineWidth;
+        private static SoftwareBitmap line;
+        private static uint charactorStartX;
+        private static uint charactorStartY;
+        private static uint charactorHeight;
+        private static uint charactorWidth;
+        private static SoftwareBitmap charactor;
+        private static bool isReadyNarator = false;
+        private static bool isStartNarator = false;
 
         public MainPage()
         {
             this.InitializeComponent();
+            scale = DisplayInformation.GetForCurrentView().RawPixelsPerViewPixel;
             Setup();
         }
 
@@ -93,6 +115,8 @@ namespace capture
         {
             // Stop the previous capture if we had one.
             StopCapture();
+            isStartNarator = false;
+            isReadyNarator = false;
 
             _item = item;
             _lastSize = _item.Size;
@@ -146,7 +170,6 @@ namespace capture
             // isn’t vulnerable to device-lost.
             bool needsReset = false;
             bool recreateDevice = false;
-            var scale = DisplayInformation.GetForCurrentView().RawPixelsPerViewPixel;
 
             if ((frame.ContentSize.Width != _lastSize.Width) ||
                 (frame.ContentSize.Height != _lastSize.Height))
@@ -166,7 +189,11 @@ namespace capture
                     frame.Surface);
 
                 _currentFrame = canvasBitmap;
-                _nowFrame = canvasBitmap;
+                if (isReadyNarator && !isStartNarator)
+                {
+                    isStartNarator = true;
+                    StartNarator();
+                }
 
                 // Helper that handles the drawing for us.
                 //FillSurfaceWithBitmap(canvasBitmap);
@@ -184,17 +211,6 @@ namespace capture
             if (needsReset)
             {
                 ResetFramePool(frame.ContentSize, recreateDevice);
-            }
-        }
-
-        private void FillSurfaceWithBitmap(CanvasBitmap canvasBitmap)
-        {
-            CanvasComposition.Resize(_surface, canvasBitmap.Size);
-
-            using (var session = CanvasComposition.CreateDrawingSession(_surface))
-            {
-                session.Clear(Colors.Transparent);
-                session.DrawImage(canvasBitmap);
             }
         }
 
@@ -267,22 +283,6 @@ namespace capture
             }
         }
 
-        private async void OpenSecondWindowAsync(object sender, RoutedEventArgs e)
-        {
-            var currentViewId = ApplicationView.GetForCurrentView().Id;
-            await CoreApplication.CreateNewView().Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
-            {
-                Window.Current.Content = new Frame();
-                ((Frame)Window.Current.Content).Navigate(typeof(NewWindowPage));
-                Window.Current.Activate();
-                await ApplicationViewSwitcher.TryShowAsStandaloneAsync(
-                    ApplicationView.GetApplicationViewIdForWindow(Window.Current.CoreWindow),
-                    ViewSizePreference.Default,
-                    currentViewId,
-                    ViewSizePreference.Default);
-            });
-        }
-
         private async void OpenNaratorWindowAsync(object sender, RoutedEventArgs e)
         {
             var currentViewId = ApplicationView.GetForCurrentView().Id;
@@ -299,20 +299,143 @@ namespace capture
             });
         }
 
-        private async void OpenWindowAsync()
+        public static async Task ByteToWriteableBitmap(WriteableBitmap wb, byte[] bgra)
         {
-            var currentViewId = ApplicationView.GetForCurrentView().Id;
-            await CoreApplication.CreateNewView().Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
+            using (Stream stream = wb.PixelBuffer.AsStream())
             {
-                Window.Current.Content = new Frame();
-                ((Frame)Window.Current.Content).Navigate(typeof(NewWindowPage));
-                Window.Current.Activate();
-                await ApplicationViewSwitcher.TryShowAsStandaloneAsync(
-                    ApplicationView.GetApplicationViewIdForWindow(Window.Current.CoreWindow),
-                    ViewSizePreference.Default,
-                    currentViewId,
-                    ViewSizePreference.Default);
-            });
+                await stream.WriteAsync(bgra, 0, bgra.Length);
+            }
+        }
+
+        public static async Task<SoftwareBitmap> GetCroppedBitmapAsync(SoftwareBitmap softwareBitmap, uint startPointX, uint startPointY, uint width, uint height)
+        {
+            using (InMemoryRandomAccessStream stream = new InMemoryRandomAccessStream())
+            {
+                BitmapEncoder encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.BmpEncoderId, stream);
+
+                encoder.SetSoftwareBitmap(softwareBitmap);
+
+                encoder.BitmapTransform.Bounds = new BitmapBounds()
+                {
+                    X = startPointX * (uint)scale,
+                    Y = startPointY * (uint)scale,
+                    Height = height * (uint)scale,
+                    Width = width * (uint)scale
+                };
+
+
+                await encoder.FlushAsync();
+
+                BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
+
+                return await decoder.GetSoftwareBitmapAsync(softwareBitmap.BitmapPixelFormat, BitmapAlphaMode.Premultiplied);
+            }
+        }
+
+        public static void SetCoordinate(double x1, double x2, double y1, double y2, string type)
+        {
+            uint startX = 0;
+            uint width = 0;
+            uint startY = 0;
+            uint height = 0;
+            if (x1 <= x2)
+            {
+                startX = (uint)x1;
+                width = (uint)(x2 - x1);
+            }
+            else
+            {
+                startX = (uint)x2;
+                width = (uint)(x1 - x2);
+            }
+            if (y1 <= y2)
+            {
+                startY = (uint)y1;
+                height = (uint)(y2 - y1);
+            }
+            else
+            {
+                startY = (uint)y2;
+                height = (uint)(y1 - y2);
+            }
+            if (type == "line")
+            {
+                lineStartX = startX;
+                lineStartY = startY;
+                lineWidth = width;
+                lineHeight = height;
+            }
+            else if (type == "charactor")
+            {
+                charactorStartX = startX;
+                charactorStartY = startY;
+                charactorWidth = width;
+                charactorHeight = height;
+            }
+        }
+
+        public static void ReadyNarator()
+        {
+            isReadyNarator = true;
+        }
+
+        private void StartNarator()
+        {
+            TimeSpan period = TimeSpan.FromMilliseconds(200);
+
+            ThreadPoolTimer PeriodicTimer = ThreadPoolTimer.CreatePeriodicTimer(async (source) =>
+            {
+                //
+                // TODO: Work
+                //
+
+                //
+                // Update the UI thread by using the UI core dispatcher.
+                //
+                await Dispatcher.RunAsync(CoreDispatcherPriority.High,
+                    async () =>
+                    {
+                        //
+                        // UI components can be accessed within this scope.
+                        //
+                        WriteableBitmap wb = new WriteableBitmap(_lastSize.Width, _lastSize.Height);
+                        await ByteToWriteableBitmap(wb, _currentFrame.GetPixelBytes());
+                        SoftwareBitmap outputBitmap = SoftwareBitmap.CreateCopyFromBuffer(
+                            wb.PixelBuffer,
+                            BitmapPixelFormat.Bgra8,
+                            wb.PixelWidth,
+                            wb.PixelHeight
+                        );
+                        if (lineWidth != 0 && lineHeight != 0)
+                        {
+                            line = await GetCroppedBitmapAsync(outputBitmap, lineStartX, lineStartY, lineWidth, lineHeight);
+                            OcrResult ocrResult = await RunWin10Ocr(line);
+                            System.Diagnostics.Debug.WriteLine("line");
+                            System.Diagnostics.Debug.WriteLine(ocrResult.Text);
+                        }
+                        if (charactorWidth != 0 && charactorHeight != 0)
+                        {
+                            charactor = await GetCroppedBitmapAsync(outputBitmap, charactorStartX, charactorStartY, charactorWidth, charactorHeight);
+                            OcrResult ocrResult = await RunWin10Ocr(charactor);
+                            System.Diagnostics.Debug.WriteLine("chara");
+                            System.Diagnostics.Debug.WriteLine(ocrResult.Text);
+                        }
+
+
+                    });
+
+            }, period);
+        }
+
+        async Task<OcrResult> RunWin10Ocr(SoftwareBitmap snap)
+        {
+            // OCRの準備。言語設定を英語にする
+            Windows.Globalization.Language language = new Windows.Globalization.Language("ja");
+            OcrEngine ocrEngine = OcrEngine.TryCreateFromLanguage(language);
+
+            // OCRをはしらせる
+            var ocrResult = await ocrEngine.RecognizeAsync(snap);
+            return ocrResult;
         }
     }
 }
