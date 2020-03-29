@@ -45,7 +45,7 @@ namespace capture
                 new PointerEventHandler(canvas1_MouseUp);
         }
 
-        private async void finish(object sender, RoutedEventArgs e)
+        private void finish(object sender, RoutedEventArgs e)
         {
             MainPage.ReadyNarator();
             //InMemoryRandomAccessStream stream = await Voice.Main("あいうえおかきくけこ");

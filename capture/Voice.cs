@@ -4,7 +4,7 @@ namespace capture
 {
     class Voice
     {
-        public static async void Main(string koe)
+        public static void Main(string koe)
         {
             System.Diagnostics.Process pro = new System.Diagnostics.Process();
 
