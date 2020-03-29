@@ -8,6 +8,7 @@ using Windows.ApplicationModel.Core;
 using Windows.Foundation;
 using Windows.Graphics.Display;
 using Windows.Graphics.Imaging;
+using Windows.Storage.Streams;
 using Windows.UI;
 using Windows.UI.Core;
 using Windows.UI.Input;
@@ -44,9 +45,13 @@ namespace capture
                 new PointerEventHandler(canvas1_MouseUp);
         }
 
-        private void finish(object sender, RoutedEventArgs e)
+        private async void finish(object sender, RoutedEventArgs e)
         {
             MainPage.ReadyNarator();
+            //InMemoryRandomAccessStream stream = await Voice.Main("あいうえおかきくけこ");
+            //MediaElement playbackMediaElement = new MediaElement();
+            //playbackMediaElement.SetSource(stream, "wav");
+            //playbackMediaElement.Play();
         }
 
         private async void setImage()

@@ -53,12 +53,10 @@ namespace capture
         public static uint lineStartY;
         public static uint lineHeight;
         public static uint lineWidth;
-        private static SoftwareBitmap line;
         private static uint charactorStartX;
         private static uint charactorStartY;
         private static uint charactorHeight;
         private static uint charactorWidth;
-        private static SoftwareBitmap charactor;
         private static bool isReadyNarator = false;
         private static bool isStartNarator = false;
 
@@ -408,19 +406,21 @@ namespace capture
                         );
                         if (lineWidth != 0 && lineHeight != 0)
                         {
-                            line = await GetCroppedBitmapAsync(outputBitmap, lineStartX, lineStartY, lineWidth, lineHeight);
+                            SoftwareBitmap line = await GetCroppedBitmapAsync(outputBitmap, lineStartX, lineStartY, lineWidth, lineHeight);
                             OcrResult ocrResult = await RunWin10Ocr(line);
                             System.Diagnostics.Debug.WriteLine("line");
                             System.Diagnostics.Debug.WriteLine(ocrResult.Text);
+                            line.Dispose();
                         }
                         if (charactorWidth != 0 && charactorHeight != 0)
                         {
-                            charactor = await GetCroppedBitmapAsync(outputBitmap, charactorStartX, charactorStartY, charactorWidth, charactorHeight);
+                            SoftwareBitmap charactor = await GetCroppedBitmapAsync(outputBitmap, charactorStartX, charactorStartY, charactorWidth, charactorHeight);
                             OcrResult ocrResult = await RunWin10Ocr(charactor);
                             System.Diagnostics.Debug.WriteLine("chara");
                             System.Diagnostics.Debug.WriteLine(ocrResult.Text);
+                            charactor.Dispose();
                         }
-
+                        outputBitmap.Dispose();
 
                     });
 
