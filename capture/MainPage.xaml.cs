@@ -1,6 +1,7 @@
 ﻿using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.UI.Composition;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -59,6 +60,8 @@ namespace capture
         private static uint charactorWidth;
         private static bool isReadyNarator = false;
         private static bool isStartNarator = false;
+
+        private static List<(string, string)> texts = new List<(string, string)>();
 
         public MainPage()
         {
@@ -404,21 +407,29 @@ namespace capture
                             wb.PixelWidth,
                             wb.PixelHeight
                         );
-                        if (lineWidth != 0 && lineHeight != 0)
+                        if (lineWidth != 0 && charactorWidth != 0)
                         {
                             SoftwareBitmap line = await GetCroppedBitmapAsync(outputBitmap, lineStartX, lineStartY, lineWidth, lineHeight);
-                            OcrResult ocrResult = await RunWin10Ocr(line);
+                            OcrResult ocrResultL = await RunWin10Ocr(line);
                             System.Diagnostics.Debug.WriteLine("line");
-                            System.Diagnostics.Debug.WriteLine(ocrResult.Text);
+                            System.Diagnostics.Debug.WriteLine(ocrResultL.Text);
                             line.Dispose();
-                        }
-                        if (charactorWidth != 0 && charactorHeight != 0)
-                        {
                             SoftwareBitmap charactor = await GetCroppedBitmapAsync(outputBitmap, charactorStartX, charactorStartY, charactorWidth, charactorHeight);
-                            OcrResult ocrResult = await RunWin10Ocr(charactor);
+                            OcrResult ocrResultC = await RunWin10Ocr(charactor);
                             System.Diagnostics.Debug.WriteLine("chara");
-                            System.Diagnostics.Debug.WriteLine(ocrResult.Text);
+                            System.Diagnostics.Debug.WriteLine(ocrResultC.Text);
                             charactor.Dispose();
+                            if (texts.Count > 0 && texts[texts.Count - 1] != (ocrResultC.Text, ocrResultL.Text))
+                            {
+                                texts.Add((ocrResultC.Text, ocrResultL.Text));
+                            }
+                            if (texts.Count > 100)
+                            {
+                                for (int r = 1; r <= texts.Count; r++)
+                                {
+                                    await Windows.Storage.FileIO.WriteTextAsync(NaratorWindowSecond._file, ocrResultC.Text + "," + ocrResultL.Text);
+                                }
+                            }
                         }
                         outputBitmap.Dispose();
 
