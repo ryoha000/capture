@@ -54,12 +54,20 @@ namespace capture
         public static uint lineStartY;
         public static uint lineHeight;
         public static uint lineWidth;
+        private static SoftwareBitmap line;
         private static uint charactorStartX;
         private static uint charactorStartY;
         private static uint charactorHeight;
         private static uint charactorWidth;
+        private static SoftwareBitmap charactor;
         private static bool isReadyNarator = false;
         private static bool isStartNarator = false;
+        private static SoftwareBitmap outputBitmap;
+        private static OcrEngine engine;
+        private static OcrResult lineResult;
+        private static OcrResult charaResult;
+        private static byte[] bits;
+        private static WriteableBitmap wb;
 
         private static List<(string, string)> texts = new List<(string, string)>();
 
@@ -378,6 +386,10 @@ namespace capture
         public static void ReadyNarator()
         {
             isReadyNarator = true;
+
+            // OCRの準備。言語設定を日本語にする
+            Windows.Globalization.Language language = new Windows.Globalization.Language("ja");
+            engine = OcrEngine.TryCreateFromLanguage(language);
         }
 
         private void StartNarator()
@@ -399,9 +411,10 @@ namespace capture
                         //
                         // UI components can be accessed within this scope.
                         //
-                        WriteableBitmap wb = new WriteableBitmap(_lastSize.Width, _lastSize.Height);
-                        await ByteToWriteableBitmap(wb, _currentFrame.GetPixelBytes());
-                        SoftwareBitmap outputBitmap = SoftwareBitmap.CreateCopyFromBuffer(
+                        wb = new WriteableBitmap(_lastSize.Width, _lastSize.Height);
+                        bits = _currentFrame.GetPixelBytes();
+                        await ByteToWriteableBitmap(wb, bits);
+                        outputBitmap = SoftwareBitmap.CreateCopyFromBuffer(
                             wb.PixelBuffer,
                             BitmapPixelFormat.Bgra8,
                             wb.PixelWidth,
@@ -409,30 +422,31 @@ namespace capture
                         );
                         if (lineWidth != 0 && charactorWidth != 0)
                         {
-                            SoftwareBitmap line = await GetCroppedBitmapAsync(outputBitmap, lineStartX, lineStartY, lineWidth, lineHeight);
-                            OcrResult ocrResultL = await RunWin10Ocr(line);
-                            System.Diagnostics.Debug.WriteLine("line");
-                            System.Diagnostics.Debug.WriteLine(ocrResultL.Text);
-                            line.Dispose();
-                            SoftwareBitmap charactor = await GetCroppedBitmapAsync(outputBitmap, charactorStartX, charactorStartY, charactorWidth, charactorHeight);
-                            OcrResult ocrResultC = await RunWin10Ocr(charactor);
-                            System.Diagnostics.Debug.WriteLine("chara");
-                            System.Diagnostics.Debug.WriteLine(ocrResultC.Text);
-                            charactor.Dispose();
-                            if (texts.Count > 0 && texts[texts.Count - 1] != (ocrResultC.Text, ocrResultL.Text))
+                            line = await GetCroppedBitmapAsync(outputBitmap, lineStartX, lineStartY, lineWidth, lineHeight);
+                            lineResult = await RunWin10Ocr(line);
+                            // System.Diagnostics.Debug.WriteLine("line");
+                            // System.Diagnostics.Debug.WriteLine(ocrResultL.Text);
+                            
+                            charactor = await GetCroppedBitmapAsync(outputBitmap, charactorStartX, charactorStartY, charactorWidth, charactorHeight);
+                            charaResult = await RunWin10Ocr(charactor);
+                            // System.Diagnostics.Debug.WriteLine("chara");
+                            // System.Diagnostics.Debug.WriteLine(ocrResultC.Text);
+                            if (texts.Count > 0 && texts[texts.Count - 1] != (charaResult.Text, lineResult.Text))
                             {
-                                texts.Add((ocrResultC.Text, ocrResultL.Text));
+                                texts.Add((charaResult.Text, lineResult.Text));
                             }
                             if (texts.Count > 100)
                             {
-                                for (int r = 1; r <= texts.Count; r++)
+                                foreach (var text in texts)
                                 {
-                                    await Windows.Storage.FileIO.WriteTextAsync(NaratorWindowSecond._file, ocrResultC.Text + "," + ocrResultL.Text);
+                                    await Windows.Storage.FileIO.WriteTextAsync(NaratorWindowSecond._file, text.Item1 + "," + text.Item2);
                                 }
+                                texts = texts.GetRange(100, texts.Count - 100);
                             }
                         }
                         outputBitmap.Dispose();
-
+                        line.Dispose();
+                        charactor.Dispose();
                     });
 
             }, period);
@@ -440,12 +454,9 @@ namespace capture
 
         async Task<OcrResult> RunWin10Ocr(SoftwareBitmap snap)
         {
-            // OCRの準備。言語設定を英語にする
-            Windows.Globalization.Language language = new Windows.Globalization.Language("ja");
-            OcrEngine ocrEngine = OcrEngine.TryCreateFromLanguage(language);
 
             // OCRをはしらせる
-            var ocrResult = await ocrEngine.RecognizeAsync(snap);
+            var ocrResult = await engine.RecognizeAsync(snap);
             return ocrResult;
         }
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Windows.Foundation;
 using Windows.Graphics.Display;
 using Windows.Graphics.Imaging;
+using Windows.Storage;
 using Windows.UI;
 using Windows.UI.Input;
 using Windows.UI.Xaml;
@@ -42,8 +43,8 @@ namespace capture
             MainPage.ReadyNarator();
 
             // Create sample file; replace if exists.
-            Windows.Storage.StorageFolder storageFolder =
-                Windows.Storage.ApplicationData.Current.LocalFolder;
+            StorageFolder storageFolder = KnownFolders.PicturesLibrary;
+            System.Diagnostics.Debug.WriteLine(storageFolder.Path);
             _file = await storageFolder.CreateFileAsync(MainPage.targetcap.DisplayName + ".csv", Windows.Storage.CreationCollisionOption.OpenIfExists);
 
             //InMemoryRandomAccessStream stream = await Voice.Main("あいうえおかきくけこ");
