@@ -35,7 +35,7 @@ namespace capture
     public sealed partial class MainPage : Page
     {
         // Capture API objects.
-        private SizeInt32 _lastSize;
+        private static SizeInt32 _lastSize;
         private GraphicsCaptureItem _item;
         private Direct3D11CaptureFramePool _framePool;
         private GraphicsCaptureSession _session;
@@ -54,20 +54,15 @@ namespace capture
         public static uint lineStartY;
         public static uint lineHeight;
         public static uint lineWidth;
-        private static SoftwareBitmap line;
         private static uint charactorStartX;
         private static uint charactorStartY;
         private static uint charactorHeight;
         private static uint charactorWidth;
-        private static SoftwareBitmap charactor;
         private static bool isReadyNarator = false;
         private static bool isStartNarator = false;
-        private static SoftwareBitmap outputBitmap;
         private static OcrEngine engine;
         private static OcrResult lineResult;
         private static OcrResult charaResult;
-        private static byte[] bits;
-        private static WriteableBitmap wb;
 
         private static List<(string, string)> texts = new List<(string, string)>();
 
@@ -411,42 +406,57 @@ namespace capture
                         //
                         // UI components can be accessed within this scope.
                         //
-                        wb = new WriteableBitmap(_lastSize.Width, _lastSize.Height);
-                        bits = _currentFrame.GetPixelBytes();
-                        await ByteToWriteableBitmap(wb, bits);
-                        outputBitmap = SoftwareBitmap.CreateCopyFromBuffer(
-                            wb.PixelBuffer,
-                            BitmapPixelFormat.Bgra8,
-                            wb.PixelWidth,
-                            wb.PixelHeight
-                        );
-                        if (lineWidth != 0 && charactorWidth != 0)
+
+                        using (InMemoryRandomAccessStream stream = new InMemoryRandomAccessStream())
                         {
-                            line = await GetCroppedBitmapAsync(outputBitmap, lineStartX, lineStartY, lineWidth, lineHeight);
-                            lineResult = await RunWin10Ocr(line);
-                            // System.Diagnostics.Debug.WriteLine("line");
-                            // System.Diagnostics.Debug.WriteLine(ocrResultL.Text);
-                            
-                            charactor = await GetCroppedBitmapAsync(outputBitmap, charactorStartX, charactorStartY, charactorWidth, charactorHeight);
-                            charaResult = await RunWin10Ocr(charactor);
-                            // System.Diagnostics.Debug.WriteLine("chara");
-                            // System.Diagnostics.Debug.WriteLine(ocrResultC.Text);
-                            if (texts.Count > 0 && texts[texts.Count - 1] != (charaResult.Text, lineResult.Text))
+                            await stream.WriteAsync(_currentFrame.GetPixelBytes().AsBuffer());
+                            stream.Seek(0);
+
+                            //// Create the decoder from the stream
+                            //BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
+
+                            //// Get the SoftwareBitmap representation of the file
+                            //SoftwareBitmap outputBitmap = await decoder.GetSoftwareBitmapAsync();
+                            SoftwareBitmap outputBitmap =
+                                SoftwareBitmap.CreateCopyFromBuffer(
+                                    _currentFrame.GetPixelBytes().AsBuffer(),
+                                    BitmapPixelFormat.Bgra8,
+                                    _lastSize.Width,
+                                    _lastSize.Height
+                                );
+
+                            if (lineWidth != 0 && charactorWidth != 0)
                             {
-                                texts.Add((charaResult.Text, lineResult.Text));
-                            }
-                            if (texts.Count > 100)
-                            {
-                                foreach (var text in texts)
+                                SoftwareBitmap line = await GetCroppedBitmapAsync(outputBitmap, lineStartX, lineStartY, lineWidth, lineHeight);
+                                lineResult = await RunWin10Ocr(line);
+                                System.Diagnostics.Debug.WriteLine("line");
+                                System.Diagnostics.Debug.WriteLine(lineResult.Text);
+
+                                SoftwareBitmap charactor = await GetCroppedBitmapAsync(outputBitmap, charactorStartX, charactorStartY, charactorWidth, charactorHeight);
+                                charaResult = await RunWin10Ocr(charactor);
+                                System.Diagnostics.Debug.WriteLine("chara");
+                                System.Diagnostics.Debug.WriteLine(charaResult.Text);
+                                if (texts.Count > 0 && texts[texts.Count - 1] != (charaResult.Text, lineResult.Text))
                                 {
-                                    await Windows.Storage.FileIO.WriteTextAsync(NaratorWindowSecond._file, text.Item1 + "," + text.Item2);
+                                    texts.Add((charaResult.Text, lineResult.Text));
                                 }
-                                texts = texts.GetRange(100, texts.Count - 100);
+                                if (texts.Count > 100)
+                                {
+                                    foreach (var text in texts)
+                                    {
+                                        await Windows.Storage.FileIO.WriteTextAsync(NaratorWindowSecond._file, text.Item1 + "," + text.Item2);
+                                    }
+                                    texts = texts.GetRange(100, texts.Count - 100);
+                                }
                             }
                         }
-                        outputBitmap.Dispose();
-                        line.Dispose();
-                        charactor.Dispose();
+                        //outputBitmap.Dispose();
+                        //line.Dispose();
+                        //charactor.Dispose();
+                        //outputBitmap = null;
+                        //line = null;
+                        //charactor = null;
+                        //wb = null;
                     });
 
             }, period);

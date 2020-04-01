@@ -132,8 +132,6 @@
       <DependentUpon>NewWindowPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SendKey.cs" />
-    <Compile Include="Voice.cs" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
