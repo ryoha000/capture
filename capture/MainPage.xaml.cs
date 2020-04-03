@@ -311,6 +311,19 @@ namespace capture
             }
         }
 
+        private static async Task<SoftwareBitmap> ByteToSoftwareBitmap(byte[] bgra)
+        {
+            using (InMemoryRandomAccessStream lineStream = new InMemoryRandomAccessStream())
+            {
+                BitmapEncoder encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.BmpEncoderId, lineStream);
+                await lineStream.WriteAsync(bgra.AsBuffer());
+                lineStream.Seek(0);
+
+                BitmapDecoder decoder = await BitmapDecoder.CreateAsync(lineStream);
+                return await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+            }
+        }
+
         public static async Task<SoftwareBitmap> GetCroppedBitmapAsync(SoftwareBitmap softwareBitmap, uint startPointX, uint startPointY, uint width, uint height)
         {
             using (InMemoryRandomAccessStream stream = new InMemoryRandomAccessStream())
@@ -327,7 +340,7 @@ namespace capture
                     Width = width * (uint)scale
                 };
 
-
+                
                 await encoder.FlushAsync();
 
                 BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
@@ -412,11 +425,6 @@ namespace capture
                             await stream.WriteAsync(_currentFrame.GetPixelBytes().AsBuffer());
                             stream.Seek(0);
 
-                            //// Create the decoder from the stream
-                            //BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
-
-                            //// Get the SoftwareBitmap representation of the file
-                            //SoftwareBitmap outputBitmap = await decoder.GetSoftwareBitmapAsync();
                             SoftwareBitmap outputBitmap =
                                 SoftwareBitmap.CreateCopyFromBuffer(
                                     _currentFrame.GetPixelBytes().AsBuffer(),
@@ -427,16 +435,46 @@ namespace capture
 
                             if (lineWidth != 0 && charactorWidth != 0)
                             {
-                                SoftwareBitmap line = await GetCroppedBitmapAsync(outputBitmap, lineStartX, lineStartY, lineWidth, lineHeight);
+                                SoftwareBitmap line =
+                                    SoftwareBitmap.CreateCopyFromBuffer(
+                                        ImageOperate.GetCroppedBitmap(outputBitmap, lineStartX, lineStartY, lineWidth, lineHeight).AsBuffer(),
+                                        BitmapPixelFormat.Bgra8,
+                                        (int)lineWidth,
+                                        (int)lineWidth
+                                    );
                                 lineResult = await RunWin10Ocr(line);
                                 System.Diagnostics.Debug.WriteLine("line");
                                 System.Diagnostics.Debug.WriteLine(lineResult.Text);
+                                if (line.BitmapPixelFormat != BitmapPixelFormat.Bgra8 || line.BitmapAlphaMode == BitmapAlphaMode.Straight)
+                                {
+                                    line = SoftwareBitmap.Convert(line, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+                                }
 
-                                SoftwareBitmap charactor = await GetCroppedBitmapAsync(outputBitmap, charactorStartX, charactorStartY, charactorWidth, charactorHeight);
+                                var imageSource = new SoftwareBitmapSource();
+                                await imageSource.SetBitmapAsync(line);
+
+                                // Set the source of the Image control
+                                a.Source = imageSource;
+
+                                SoftwareBitmap charactor =
+                                    SoftwareBitmap.CreateCopyFromBuffer(
+                                        ImageOperate.GetCroppedBitmap(outputBitmap, charactorStartX, charactorStartY, charactorWidth, charactorHeight).AsBuffer(),
+                                        BitmapPixelFormat.Bgra8,
+                                        (int)lineWidth,
+                                        (int)lineWidth
+                                    );
                                 charaResult = await RunWin10Ocr(charactor);
                                 System.Diagnostics.Debug.WriteLine("chara");
-                                System.Diagnostics.Debug.WriteLine(charaResult.Text);
-                                if (texts.Count > 0 && texts[texts.Count - 1] != (charaResult.Text, lineResult.Text))
+                                string charaName = "";
+                                if (charaResult.Lines.Count > 0)
+                                {
+                                    System.Diagnostics.Debug.WriteLine(charaResult.Lines[0].Text);
+                                    charaName = charaResult.Lines[0].Text;
+                                }
+                                outputBitmap.Dispose();
+                                line.Dispose();
+                                charactor.Dispose();
+                                if (texts.Count > 0 && texts[texts.Count - 1] != (charaName, lineResult.Text))
                                 {
                                     texts.Add((charaResult.Text, lineResult.Text));
                                 }
@@ -450,13 +488,6 @@ namespace capture
                                 }
                             }
                         }
-                        //outputBitmap.Dispose();
-                        //line.Dispose();
-                        //charactor.Dispose();
-                        //outputBitmap = null;
-                        //line = null;
-                        //charactor = null;
-                        //wb = null;
                     });
 
             }, period);

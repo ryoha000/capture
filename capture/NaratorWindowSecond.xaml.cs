@@ -43,9 +43,10 @@ namespace capture
             MainPage.ReadyNarator();
 
             // Create sample file; replace if exists.
-            StorageFolder storageFolder = KnownFolders.PicturesLibrary;
+            StorageFolder storageFolder = Windows.Storage.ApplicationData.Current.LocalFolder;
             System.Diagnostics.Debug.WriteLine(storageFolder.Path);
             _file = await storageFolder.CreateFileAsync(MainPage.targetcap.DisplayName + ".csv", Windows.Storage.CreationCollisionOption.OpenIfExists);
+            System.Diagnostics.Debug.WriteLine(_file.Path);
 
             //InMemoryRandomAccessStream stream = await Voice.Main("あいうえおかきくけこ");
             //MediaElement playbackMediaElement = new MediaElement();
