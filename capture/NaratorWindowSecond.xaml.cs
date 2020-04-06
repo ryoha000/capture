@@ -56,14 +56,7 @@ namespace capture
 
         private async void setImage()
         {
-            WriteableBitmap wb = new WriteableBitmap((int)MainPage._currentFrame.Size.Width, (int)MainPage._currentFrame.Size.Height);
-            await MainPage.ByteToWriteableBitmap(wb, MainPage._currentFrame.GetPixelBytes());
-            SoftwareBitmap outputBitmap = SoftwareBitmap.CreateCopyFromBuffer(
-                wb.PixelBuffer,
-                BitmapPixelFormat.Bgra8,
-                wb.PixelWidth,
-                wb.PixelHeight
-            );
+            SoftwareBitmap outputBitmap = await ImageOperate.CnavasBitmapToSoftwareBitmapAsync(MainPage._currentFrame);
             SoftwareBitmap displayableImage = SoftwareBitmap.Convert(outputBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
             var source = new SoftwareBitmapSource();
             await source.SetBitmapAsync(displayableImage);
